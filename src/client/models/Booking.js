@@ -89,6 +89,14 @@ const bookingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
+    cancelledByType: {
+      type: String,
+      enum: ['admin', 'system', 'customer', 'staff'],
+      // 'admin' - cancelled by client admin (slot blocking)
+      // 'system' - auto-cancelled by system
+      // 'customer' - cancelled by customer
+      // 'staff' - cancelled by staff
+    },
     cancellationReason: {
       type: String,
     },

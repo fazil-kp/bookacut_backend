@@ -27,10 +27,12 @@ class BookingService {
         throw new Error('Slot not found');
       }
 
-      if (slot.status === 'blocked') {
-        throw new Error('Slot is blocked');
+      // Check if slot is blocked
+      if (slot.isBlocked || slot.status === 'blocked') {
+        throw new Error('Slot is blocked and cannot be booked');
       }
 
+      // Check availability
       if (!slot.isAvailable()) {
         throw new Error('Slot is full');
       }
@@ -99,6 +101,11 @@ class BookingService {
 
       if (!slot) {
         throw new Error('Slot not found');
+      }
+
+      // Check if slot is blocked
+      if (slot.isBlocked || slot.status === 'blocked') {
+        throw new Error('Slot is blocked and cannot be booked');
       }
 
       // Create or get customer

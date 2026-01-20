@@ -49,9 +49,21 @@ const slotSchema = new mongoose.Schema(
       default: 'available',
       index: true,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     blockedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+    },
+    blockedAt: {
+      type: Date,
+    },
+    unblockAt: {
+      type: Date,
+      // Optional: For scheduling automatic unblocking
     },
     blockedReason: {
       type: String,
@@ -74,10 +86,12 @@ const slotSchema = new mongoose.Schema(
 slotSchema.index({ shopId: 1, date: 1 });
 slotSchema.index({ shopId: 1, date: 1, status: 1 });
 slotSchema.index({ shopId: 1, date: 1, startTime: 1 }, { unique: true });
+slotSchema.index({ shopId: 1, date: 1, isBlocked: 1 }); // For filtering blocked slots
+slotSchema.index({ isBlocked: 1, status: 1 }); // For availability queries
 
 // Method to check if slot is available
 slotSchema.methods.isAvailable = function () {
-  return this.status === 'available' && this.bookedCount < this.capacity;
+  return !this.isBlocked && this.status === 'available' && this.bookedCount < this.capacity;
 };
 
 // Method to update booked count

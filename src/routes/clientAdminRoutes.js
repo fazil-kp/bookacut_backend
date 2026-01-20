@@ -127,16 +127,47 @@ router.post(
   clientAdminController.generateSlots.bind(clientAdminController)
 );
 
+// Block slot by date and time (Preferred method)
 router.post(
-  '/shops/:shopId/slots/:slotId/block',
+  '/shops/:shopId/slots/block',
   validateShopAccess,
+  [
+    body('date').isISO8601().toDate(),
+    body('slotTime').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('slotTime must be in HH:mm format'),
+    body('reason').optional().trim(),
+    validate,
+  ],
   clientAdminController.blockSlot.bind(clientAdminController)
 );
 
+// Block slot by slotId (Alternative method)
+router.post(
+  '/shops/:shopId/slots/:slotId/block',
+  validateShopAccess,
+  [
+    body('reason').optional().trim(),
+    validate,
+  ],
+  clientAdminController.blockSlotById.bind(clientAdminController)
+);
+
+// Unblock slot by date and time (Preferred method)
+router.post(
+  '/shops/:shopId/slots/unblock',
+  validateShopAccess,
+  [
+    body('date').isISO8601().toDate(),
+    body('slotTime').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('slotTime must be in HH:mm format'),
+    validate,
+  ],
+  clientAdminController.unblockSlot.bind(clientAdminController)
+);
+
+// Unblock slot by slotId (Alternative method)
 router.post(
   '/shops/:shopId/slots/:slotId/unblock',
   validateShopAccess,
-  clientAdminController.unblockSlot.bind(clientAdminController)
+  clientAdminController.unblockSlotById.bind(clientAdminController)
 );
 
 router.put(

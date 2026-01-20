@@ -1,12 +1,14 @@
-const Shop = require('../models/Shop');
-const User = require('../models/User');
-const StaffProfile = require('../models/StaffProfile');
-const Role = require('../models/Role');
-const Service = require('../models/Service');
-const ShopSettings = require('../models/ShopSettings');
-const Booking = require('../models/Booking');
-const Invoice = require('../models/Invoice');
+const { getModel } = require('../database/modelFactory');
+const shopSchema = require('../client/models/Shop').schema;
+const userSchema = require('../client/models/User').schema;
+const staffProfileSchema = require('../client/models/StaffProfile').schema;
+const roleSchema = require('../client/models/Role').schema;
+const serviceSchema = require('../client/models/Service').schema;
+const shopSettingsSchema = require('../client/models/ShopSettings').schema;
+const bookingSchema = require('../client/models/Booking').schema;
+const invoiceSchema = require('../client/models/Invoice').schema;
 const slotService = require('../services/slotService');
+const slotBlockingService = require('../services/slotBlockingService');
 const invoiceService = require('../services/invoiceService');
 const { NotFoundError, ValidationError, ConflictError } = require('../utils/errors');
 const { ROLES, PERMISSIONS } = require('../config/constants');
@@ -514,18 +516,106 @@ class ClientAdminController {
   }
 
   /**
-   * Block Slot
+   * Block Slot by Date and Time
    */
   async blockSlot(req, res, next) {
     try {
-      const { shopId, slotId } = req.params;
-      const { reason } = req.body;
-      const tenantId = req.tenantId;
+      const { shopId } = req.params;
+      const { date, slotTime, reason } = req.body;
+      const databaseName = req.user.databaseName;
 
-      const slot = await slotService.blockSlot(tenantId, shopId, slotId, req.user._id, reason);
+      if (!date || !slotTime) {
+        throw new ValidationError('Date and slotTime are required');
+      }
+
+      // Only client admin can block slots
+      if (req.user.role !== ROLES.CLIENT_ADMIN) {
+        throw new ValidationError('Only client admin can block slots');
+      }
+
+      const result = await slotBlockingService.blockSlot(
+        databaseName,
+        shopId,
+        date,
+        slotTime,
+        req.user._id,
+        reason
+      );
 
       res.json({
         success: true,
+        message: 'Slot blocked successfully',
+        slot: result.slot,
+        cancelledBookings: result.cancelledBookings,
+        cancelledCount: result.cancelledBookings.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Block Slot by Slot ID (Alternative endpoint)
+   */
+  async blockSlotById(req, res, next) {
+    try {
+      const { shopId, slotId } = req.params;
+      const { reason } = req.body;
+      const databaseName = req.user.databaseName;
+
+      // Only client admin can block slots
+      if (req.user.role !== ROLES.CLIENT_ADMIN) {
+        throw new ValidationError('Only client admin can block slots');
+      }
+
+      const result = await slotBlockingService.blockSlotById(
+        databaseName,
+        shopId,
+        slotId,
+        req.user._id,
+        reason
+      );
+
+      res.json({
+        success: true,
+        message: 'Slot blocked successfully',
+        slot: result.slot,
+        cancelledBookings: result.cancelledBookings,
+        cancelledCount: result.cancelledBookings.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Unblock Slot by Date and Time
+   */
+  async unblockSlot(req, res, next) {
+    try {
+      const { shopId } = req.params;
+      const { date, slotTime } = req.body;
+      const databaseName = req.user.databaseName;
+
+      if (!date || !slotTime) {
+        throw new ValidationError('Date and slotTime are required');
+      }
+
+      // Only client admin can unblock slots
+      if (req.user.role !== ROLES.CLIENT_ADMIN) {
+        throw new ValidationError('Only client admin can unblock slots');
+      }
+
+      const slot = await slotBlockingService.unblockSlot(
+        databaseName,
+        shopId,
+        date,
+        slotTime
+      );
+
+      res.json({
+        success: true,
+        message: 'Slot unblocked successfully',
         slot,
       });
     } catch (error) {
@@ -534,17 +624,27 @@ class ClientAdminController {
   }
 
   /**
-   * Unblock Slot
+   * Unblock Slot by Slot ID (Alternative endpoint)
    */
-  async unblockSlot(req, res, next) {
+  async unblockSlotById(req, res, next) {
     try {
       const { shopId, slotId } = req.params;
-      const tenantId = req.tenantId;
+      const databaseName = req.user.databaseName;
 
-      const slot = await slotService.unblockSlot(tenantId, shopId, slotId);
+      // Only client admin can unblock slots
+      if (req.user.role !== ROLES.CLIENT_ADMIN) {
+        throw new ValidationError('Only client admin can unblock slots');
+      }
+
+      const slot = await slotBlockingService.unblockSlotById(
+        databaseName,
+        shopId,
+        slotId
+      );
 
       res.json({
         success: true,
+        message: 'Slot unblocked successfully',
         slot,
       });
     } catch (error) {

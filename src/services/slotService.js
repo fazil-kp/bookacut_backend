@@ -268,13 +268,14 @@ class SlotService {
           $gte: moment(startDate).startOf('day').toDate(),
           $lte: moment(endDate).endOf('day').toDate(),
         },
+        isBlocked: false, // Exclude blocked slots
         status: 'available',
       })
         .populate('shopId', 'name')
         .sort({ date: 1, startTime: 1 });
 
-      // Filter slots that have capacity
-      return slots.filter((slot) => slot.bookedCount < slot.capacity);
+      // Filter slots that have capacity and are not blocked
+      return slots.filter((slot) => !slot.isBlocked && slot.bookedCount < slot.capacity);
     } catch (error) {
       throw error;
     }
